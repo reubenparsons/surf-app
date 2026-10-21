@@ -1,11 +1,26 @@
-# Surf — Victoria
+# Swell: an AI surf guide for Victoria
 
-A surf-spot recommendation tool for Victorian breaks. Filters 39 spots through
-skill and condition gates, scores survivors via a hierarchical multiplicative
-model, and narrates the result via Claude.
+**Live:** [surf-app-eta.vercel.app](https://surf-app-eta.vercel.app)
 
-Honest output, not hype: if conditions are mediocre, it says so. If a famous
-spot is firing but above your level, it tells you that and redirects.
+Tell it where you're starting from, your skill level and when you want to go. Swell pulls live ocean forecasts, scores 39 Victorian breaks, and tells you where to surf in plain English, including where *not* to go and why.
+
+Honest output, not hype. If conditions are mediocre it says so, and if a famous spot is firing but above your level it tells you and suggests somewhere better.
+
+<p>
+  <img src="docs/results-narration.jpg" width="58%" alt="Swell's narrated recommendation">
+  <img src="docs/form-mobile.jpg" width="30%" alt="Swell on mobile">
+</p>
+
+![Ranked spots with swell, wind, surf height and hazards](docs/results-spots.jpg)
+
+## Highlights
+
+- **A real scoring engine, not a chatbot guess.** An 8-layer model scores every spot on swell direction, period and size, wind, tide, crowd, forecast certainty and drive time, after 7 hard safety gates.
+- **Physics-based surf height.** Breaking-wave height uses the Komar & Gaughan (1972) formula, calibrated against observed surf heights, then shown in the traditional/Hawaiian scale surfers actually use.
+- **Safety first.** Skill-specific hazard gates (rips, rocks, shore-break power, access) keep beginners off dangerous breaks, with 14 safety-critical scenarios under test.
+- **Live data.** Open-Meteo marine, wind and tide forecasts with a 30-minute cache, plus Australia-only geocoding.
+- **Feels instant.** Ranked spots stream to the page straight away. Claude's write-up then streams in token by token, and falls back to a deterministic summary if the AI is unavailable.
+- **276 unit tests,** strict TypeScript, and lint-clean.
 
 ## Stack
 
@@ -43,7 +58,7 @@ Open-Meteo APIs do not require a key.
 | `npm run dev` | Next.js dev server on `:3000` |
 | `npm run build` | Production build |
 | `npm start` | Run the production build |
-| `npm test` | Run the full Vitest suite (~250 tests) |
+| `npm test` | Run the full Vitest suite (276 tests) |
 | `npm run test:watch` | Vitest in watch mode |
 | `npm run lint` | ESLint |
 | `npx tsx scripts/smoke-conditions.ts` | Probe Open-Meteo at Bells with raw HTTP and confirm field names + null counts. Useful as a calibration aid. |
@@ -70,14 +85,14 @@ lib/
     gates.ts                  Layer 1 — 7 hard gates
     swellQuality.ts           Layer 2 — direction × period × size composite
     windFactor.ts             Layer 3 — direction × strength multiplier
-    tideFactor.ts             Layer 4 — v1 stub (factor=1.0 + caveat)
+    tideFactor.ts             Layer 4 — live tide phase + direction vs spot preference
     crowdFactor.ts            Layer 5 — base + modifiers + skill-relative
     certainty.ts              Layer 6 — forecast horizon decay
     driveTime.ts              Layer 7 — haversine + capped curve
     composite.ts              Layer 8 — final score + firing flag + category
     hazards.ts                Predicate registry (gating vs warning)
     geometry.ts               Compass utilities
-    effectiveSize.ts          Period-multiplier curve
+    effectiveSize.ts          Komar–Gaughan breaker height (calibrated)
     index.ts                  Public scoreAll() orchestrator
   narration/
     prompt.ts                 System prompt (verbatim from spec + tide addendum)
